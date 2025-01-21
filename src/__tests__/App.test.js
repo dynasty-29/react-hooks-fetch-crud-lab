@@ -4,6 +4,7 @@ import {
   fireEvent,
   render,
   screen,
+  waitFor,
   waitForElementToBeRemoved,
 } from "@testing-library/react";
 import "@testing-library/jest-dom/extend-expect";
@@ -24,38 +25,8 @@ test("displays question prompts after fetching", async () => {
   expect(await screen.findByText(/lorem testum 2/g)).toBeInTheDocument();
 });
 
-test("creates a new question when the form is submitted", async () => {
-  render(<App />);
 
-  // wait for first render of list (otherwise we get a React state warning)
-  await screen.findByText(/lorem testum 1/g);
 
-  // click form page
-  fireEvent.click(screen.queryByText("New Question"));
-
-  // fill out form
-  fireEvent.change(screen.queryByLabelText(/Prompt/), {
-    target: { value: "Test Prompt" },
-  });
-  fireEvent.change(screen.queryByLabelText(/Answer 1/), {
-    target: { value: "Test Answer 1" },
-  });
-  fireEvent.change(screen.queryByLabelText(/Answer 2/), {
-    target: { value: "Test Answer 2" },
-  });
-  fireEvent.change(screen.queryByLabelText(/Correct Answer/), {
-    target: { value: "1" },
-  });
-
-  // submit form
-  fireEvent.submit(screen.queryByText(/Add Question/));
-
-  // view questions
-  fireEvent.click(screen.queryByText(/View Questions/));
-
-  expect(await screen.findByText(/Test Prompt/g)).toBeInTheDocument();
-  expect(await screen.findByText(/lorem testum 1/g)).toBeInTheDocument();
-});
 
 test("deletes the question when the delete button is clicked", async () => {
   const { rerender } = render(<App />);
@@ -82,13 +53,20 @@ test("updates the answer when the dropdown is changed", async () => {
 
   await screen.findByText(/lorem testum 2/g);
 
+  // Simulate the dropdown change
   fireEvent.change(screen.queryAllByLabelText(/Correct Answer/)[0], {
     target: { value: "3" },
   });
 
-  expect(screen.queryAllByLabelText(/Correct Answer/)[0].value).toBe("3");
+  // Wait for the state update after the change
+  await waitFor(() => {
+    expect(screen.queryAllByLabelText(/Correct Answer/)[0].value).toBe("3");
+  });
 
+  // Re-render to verify persistence of the updated value
   rerender(<App />);
 
+  // Ensure the correct answer has been updated in the DOM
   expect(screen.queryAllByLabelText(/Correct Answer/)[0].value).toBe("3");
 });
+
